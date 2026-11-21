@@ -5,6 +5,7 @@ import {SearchPanel} from './components/SearchPanel';
 import {AudioControls} from './components/AudioControls';
 import {SpectrumCanvas} from './components/SpectrumCanvas';
 import {EqCurveSvg} from './components/EqCurveSvg';
+import {ProgressBar} from './components/ProgressBar';
 
 export default function App() {
     const audioRef = useRef(null);
@@ -13,6 +14,8 @@ export default function App() {
 
     const [currentTrack, setCurrentTrack] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
     const [isEngineReady, setIsEngineReady] = useState(false);
 
     const [eq, setEq] = useState({bass: 0, mid: 0, treble: 0});
@@ -51,8 +54,17 @@ export default function App() {
         }
     }
 
+    function handleSeek(newTime) {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.currentTime = newTime;
+        setCurrentTime(newTime);
+    }
+
     function handleSelectTrack(track) {
         setCurrentTrack(track);
+        setCurrentTime(0);
+        setDuration(0);
         setTimeout(() => initAndPlay(), 50);
     }
 
@@ -68,14 +80,21 @@ export default function App() {
             <header className="app-header">
                 <h1>Audio Visualizer & EQ Studio</h1>
                 {currentTrack && (
-                    <div className="now-playing">
-                        <button onClick={togglePlay} className="play-btn">
-                            {isPlaying ? <Pause size={18}/> : <Play size={18}/>}
-                            {isPlaying ? 'Пауза' : 'Играть'}
-                        </button>
-                        <span>
-              <strong>{currentTrack.title}</strong> — {currentTrack.artist}
-            </span>
+                    <div className="player-bar panel">
+                        <div className="now-playing">
+                            <button onClick={togglePlay} className="play-btn">
+                                {isPlaying ? <Pause size={18}/> : <Play size={18}/>}
+                                {isPlaying ? 'Пауза' : 'Играть'}
+                            </button>
+                            <span>
+                                <strong>{currentTrack.title}</strong> — {currentTrack.artist}
+                            </span>
+                        </div>
+                        <ProgressBar
+                            currentTime={currentTime}
+                            duration={duration}
+                            onSeek={handleSeek}
+                        />
                     </div>
                 )}
             </header>
@@ -84,6 +103,8 @@ export default function App() {
                 ref={audioRef}
                 crossOrigin="anonymous"
                 src={currentTrack?.previewUrl || ''}
+                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
                 onEnded={() => setIsPlaying(false)}
             />
 

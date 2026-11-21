@@ -195,6 +195,33 @@ button.active {
     margin-bottom: 8px;
 }
 
+.player-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.progress-slider {
+    flex: 1;
+    cursor: pointer;
+    accent-color: #38bdf8;
+}
+
+.time-label {
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    color: #94a3b8;
+    min-width: 36px;
+}
+
 @media (max-width: 860px) {
     .main-grid, .controls-grid {
         grid-template-columns: 1fr;
