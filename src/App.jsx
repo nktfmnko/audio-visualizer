@@ -1,122 +1,111 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import {useEffect, useRef, useState} from 'react';
+import {Play, Pause} from 'lucide-react';
+import {AudioEngine} from './audio/AudioEngine';
+import {SearchPanel} from './components/SearchPanel';
+import {AudioControls} from './components/AudioControls';
+import {SpectrumCanvas} from './components/SpectrumCanvas';
+import {EqCurveSvg} from './components/EqCurveSvg';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+    const audioRef = useRef(null);
+    const [engine] = useState(() => new AudioEngine());
+    const [analyser, setAnalyser] = useState(null);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    const [currentTrack, setCurrentTrack] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isEngineReady, setIsEngineReady] = useState(false);
+
+    const [eq, setEq] = useState({bass: 0, mid: 0, treble: 0});
+    const [speed, setSpeed] = useState(1.0);
+    const [preservePitch, setPreservePitch] = useState(false);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.playbackRate = speed;
+        audio.preservesPitch = preservePitch;
+    }, [speed, preservePitch, currentTrack]);
+
+    function initAndPlay() {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        engine.init(audio);
+        engine.setEq(eq);
+        setAnalyser(engine.analyser);
+        setIsEngineReady(true);
+
+        audio.play();
+        setIsPlaying(true);
+    }
+
+    function togglePlay() {
+        const audio = audioRef.current;
+        if (!audio || !currentTrack) return;
+
+        if (isPlaying) {
+            audio.pause();
+            setIsPlaying(false);
+        } else {
+            initAndPlay();
+        }
+    }
+
+    function handleSelectTrack(track) {
+        setCurrentTrack(track);
+        setTimeout(() => initAndPlay(), 50);
+    }
+
+    function handleEqChange(newEq) {
+        setEq(newEq);
+        if (isEngineReady) {
+            engine.setEq(newEq);
+        }
+    }
+
+    return (
+        <div className="app-container">
+            <header className="app-header">
+                <h1>Audio Visualizer & EQ Studio</h1>
+                {currentTrack && (
+                    <div className="now-playing">
+                        <button onClick={togglePlay} className="play-btn">
+                            {isPlaying ? <Pause size={18}/> : <Play size={18}/>}
+                            {isPlaying ? 'Пауза' : 'Играть'}
+                        </button>
+                        <span>
+              <strong>{currentTrack.title}</strong> — {currentTrack.artist}
+            </span>
+                    </div>
+                )}
+            </header>
+
+            <audio
+                ref={audioRef}
+                crossOrigin="anonymous"
+                src={currentTrack?.previewUrl || ''}
+                onEnded={() => setIsPlaying(false)}
+            />
+
+            <main className="main-grid">
+                <SearchPanel
+                    onSelectTrack={handleSelectTrack}
+                    currentTrackId={currentTrack?.id}
+                />
+
+                <div className="right-column">
+                    <SpectrumCanvas analyser={analyser}/>
+                    <EqCurveSvg engine={engine} isEngineReady={isEngineReady}/>
+                    <AudioControls
+                        eq={eq}
+                        onEqChange={handleEqChange}
+                        speed={speed}
+                        onSpeedChange={setSpeed}
+                        preservePitch={preservePitch}
+                        onPreservePitchChange={setPreservePitch}
+                    />
+                </div>
+            </main>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    );
 }
-
-export default App
